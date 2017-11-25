@@ -10,6 +10,7 @@ import android.widget.Toast;
 public class QuizActivity extends AppCompatActivity {
 
     private final String TAG = "QuizActivity";
+    private final String KEY_INDEX = "index";
 
     private TextView mQuestionTextView;
 
@@ -32,6 +33,9 @@ public class QuizActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         setContentView(R.layout.activity_quiz);
+
+        if (savedInstanceState != null)
+            mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
 
         mQuestionTextView = findViewById(R.id.question_text_view);
         mQuestionTextView.setOnClickListener(new View.OnClickListener() {
@@ -83,7 +87,7 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
     }
@@ -104,6 +108,13 @@ public class QuizActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        Log.i(TAG, "onSaveInstanceState");
+        savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
     }
 
     private void previousQuestion() {
