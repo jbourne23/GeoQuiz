@@ -12,4 +12,6 @@
     <string name="next">Next</string>
     <string name="correct_toast">Correct!</string>
     <string name="incorrect_toast">Incorrect!</string>
+    <string name="already_answered">Question already answered.</string>
+    <string name="total_score">User total score: </string>
 </resources>

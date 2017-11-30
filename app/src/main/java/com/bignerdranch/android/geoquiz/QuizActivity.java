@@ -1,6 +1,8 @@
 package com.bignerdranch.android.geoquiz;
 
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -11,10 +13,13 @@ public class QuizActivity extends AppCompatActivity {
 
     private final String TAG = "QuizActivity";
     private final String KEY_INDEX = "index";
+    private final String KEY_SCORE = "score";
+    private final String KEY_ANSWERED = "answered";
+    private final String KEY_ANSWERS = "answers";
 
     private TextView mQuestionTextView;
 
-    private Question[] mQuestionBank = new Question[]{
+    private final Question[] mQuestionBank = new Question[]{
             new Question(R.string.question_australia, true),
             new Question(R.string.question_oceans, true),
             new Question(R.string.question_mideast, false),
@@ -23,7 +28,9 @@ public class QuizActivity extends AppCompatActivity {
             new Question(R.string.question_asia, true),
     };
 
-    private int mCurrentIndex = 0;
+    private UserAnswers mUserAnswers = new UserAnswers(mQuestionBank.length);
+
+    private int mCurrentIndex, mScore, mAnswered;
 
 
     @Override
@@ -34,8 +41,12 @@ public class QuizActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_quiz);
 
-        if (savedInstanceState != null)
+        if (savedInstanceState != null) {
             mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
+            mScore = savedInstanceState.getInt(KEY_SCORE, 0);
+            mAnswered = savedInstanceState.getInt(KEY_ANSWERED, 0);
+            mUserAnswers = savedInstanceState.getParcelable(KEY_ANSWERS);
+        }
 
         mQuestionTextView = findViewById(R.id.question_text_view);
         mQuestionTextView.setOnClickListener(new View.OnClickListener() {
@@ -45,7 +56,7 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
 
-        View mTrueButton = findViewById(R.id.true_button);
+        final View mTrueButton = findViewById(R.id.true_button);
         mTrueButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -53,7 +64,7 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
 
-        View mFalseButton = findViewById(R.id.false_button);
+        final View mFalseButton = findViewById(R.id.false_button);
         mFalseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -61,7 +72,7 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
 
-        View mPreviousButton = findViewById(R.id.previous_button);
+        final View mPreviousButton = findViewById(R.id.previous_button);
         mPreviousButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -69,7 +80,7 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
 
-        View mNextButton = findViewById(R.id.next_button);
+        final View mNextButton = findViewById(R.id.next_button);
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -115,12 +126,16 @@ public class QuizActivity extends AppCompatActivity {
         super.onSaveInstanceState(savedInstanceState);
         Log.i(TAG, "onSaveInstanceState");
         savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
+        savedInstanceState.putInt(KEY_SCORE, mScore);
+        savedInstanceState.putInt(KEY_ANSWERED, mAnswered);
+        savedInstanceState.putParcelable(KEY_ANSWERS, mUserAnswers);
     }
 
     private void previousQuestion() {
         mCurrentIndex--;
-        if (mCurrentIndex < 0)
+        if (mCurrentIndex < 0) {
             mCurrentIndex = mQuestionBank.length - 1;
+        }
         updateQuestion();
     }
 
@@ -134,9 +149,79 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     private void checkAnswer(boolean userPressedTrue) {
-        int messageResId = (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) ? R.string.correct_toast : R.string.incorrect_toast;
+        int messageResId = R.string.already_answered;
+
+        // Not answered yet
+        if (mUserAnswers.get(mCurrentIndex) == null) {
+            mUserAnswers.set(mCurrentIndex, userPressedTrue);
+
+            mAnswered++;
+
+            if (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) {
+                messageResId = R.string.correct_toast;
+                mScore++;
+            } else {
+                messageResId = R.string.incorrect_toast;
+            }
+        }
 
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT)
                 .show();
+
+        if (mAnswered == mQuestionBank.length) {
+            Toast.makeText(this, getResources().getString(R.string.total_score) + mScore, Toast.LENGTH_SHORT)
+                    .show();
+        }
     }
+}
+
+
+class UserAnswers implements Parcelable {
+    private Boolean[] mAnswers;
+
+    UserAnswers(int answersNumber) {
+        mAnswers = new Boolean[answersNumber];
+    }
+
+
+    Boolean get(int index) {
+        if (index >= 0 && index < mAnswers.length) {
+            return mAnswers[index];
+        }
+
+        return null;
+    }
+
+    void set(int index, Boolean value) {
+        if (index >= 0 && index < mAnswers.length) {
+            mAnswers[index] = value;
+        }
+    }
+
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeArray(this.mAnswers);
+    }
+
+    private UserAnswers(Parcel in) {
+        this.mAnswers = (Boolean[]) in.readArray(Boolean[].class.getClassLoader());
+    }
+
+    public static final Parcelable.Creator<UserAnswers> CREATOR = new Parcelable.Creator<UserAnswers>() {
+        @Override
+        public UserAnswers createFromParcel(Parcel source) {
+            return new UserAnswers(source);
+        }
+
+        @Override
+        public UserAnswers[] newArray(int size) {
+            return new UserAnswers[size];
+        }
+    };
 }
