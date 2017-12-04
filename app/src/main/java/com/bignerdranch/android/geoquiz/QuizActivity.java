@@ -1,5 +1,6 @@
 package com.bignerdranch.android.geoquiz;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -11,11 +12,11 @@ import android.widget.Toast;
 
 public class QuizActivity extends AppCompatActivity {
 
-    private final String TAG = "QuizActivity";
-    private final String KEY_INDEX = "index";
-    private final String KEY_SCORE = "score";
-    private final String KEY_ANSWERED = "answered";
-    private final String KEY_ANSWERS = "answers";
+    private static final String TAG = "QuizActivity";
+    private static final String KEY_INDEX = "index";
+    private static final String KEY_SCORE = "score";
+    private static final String KEY_ANSWERED = "answered";
+    private static final String KEY_ANSWERS = "answers";
 
     private TextView mQuestionTextView;
 
@@ -85,6 +86,16 @@ public class QuizActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 nextQuestion();
+            }
+        });
+
+        final View mCheatButton = findViewById(R.id.cheat_button);
+        mCheatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
+                Intent intent = CheatActivity.newIntent(QuizActivity.this, answerIsTrue);
+                startActivity(intent);
             }
         });
 
