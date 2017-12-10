@@ -17,6 +17,7 @@ public class QuizActivity extends AppCompatActivity {
     private static final String KEY_SCORE = "score";
     private static final String KEY_ANSWERED = "answered";
     private static final String KEY_ANSWERS = "answers";
+    private static final int REQUEST_CODE_CHEAT = 0;
 
     private TextView mQuestionTextView;
 
@@ -32,6 +33,7 @@ public class QuizActivity extends AppCompatActivity {
     private UserAnswers mUserAnswers = new UserAnswers(mQuestionBank.length);
 
     private int mCurrentIndex, mScore, mAnswered;
+    private boolean mIsCheater;
 
 
     @Override
@@ -95,7 +97,7 @@ public class QuizActivity extends AppCompatActivity {
             public void onClick(View v) {
                 boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
                 Intent intent = CheatActivity.newIntent(QuizActivity.this, answerIsTrue);
-                startActivity(intent);
+                startActivityForResult(intent, REQUEST_CODE_CHEAT);
             }
         });
 
@@ -121,6 +123,16 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        Log.i(TAG, "onSaveInstanceState");
+        savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
+        savedInstanceState.putInt(KEY_SCORE, mScore);
+        savedInstanceState.putInt(KEY_ANSWERED, mAnswered);
+        savedInstanceState.putParcelable(KEY_ANSWERS, mUserAnswers);
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         Log.d(TAG, "onStop");
@@ -133,13 +145,18 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-        Log.i(TAG, "onSaveInstanceState");
-        savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
-        savedInstanceState.putInt(KEY_SCORE, mScore);
-        savedInstanceState.putInt(KEY_ANSWERED, mAnswered);
-        savedInstanceState.putParcelable(KEY_ANSWERS, mUserAnswers);
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != AppCompatActivity.RESULT_OK) {
+            return;
+        }
+
+        if (requestCode == REQUEST_CODE_CHEAT) {
+            if (data == null) {
+                return;
+            }
+            mIsCheater = CheatActivity.wasAnswerShown(data);
+        }
     }
 
     private void previousQuestion() {
@@ -147,11 +164,17 @@ public class QuizActivity extends AppCompatActivity {
         if (mCurrentIndex < 0) {
             mCurrentIndex = mQuestionBank.length - 1;
         }
+
+        mIsCheater = false;
+
         updateQuestion();
     }
 
     private void nextQuestion() {
         mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
+
+        mIsCheater = false;
+
         updateQuestion();
     }
 
@@ -168,11 +191,15 @@ public class QuizActivity extends AppCompatActivity {
 
             mAnswered++;
 
-            if (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) {
-                messageResId = R.string.correct_toast;
-                mScore++;
+            if (mIsCheater) {
+                messageResId = R.string.judgement_toast;
             } else {
-                messageResId = R.string.incorrect_toast;
+                if (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) {
+                    messageResId = R.string.correct_toast;
+                    mScore++;
+                } else {
+                    messageResId = R.string.incorrect_toast;
+                }
             }
         }
 
